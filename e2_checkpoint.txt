@@ -1,0 +1,170 @@
+{
+  "metadata": {
+    "kernelspec": {
+      "name": "node_nteract",
+      "language": "javascript",
+      "display_name": "Node.js (nteract)"
+    },
+    "kernel_info": {
+      "name": "node_nteract"
+    },
+    "language_info": {
+      "name": "javascript",
+      "version": "8.2.1",
+      "mimetype": "application/javascript",
+      "file_extension": ".js"
+    },
+    "title": "WepSIM 2.0.11",
+    "nteract": {
+      "version": "nteract-on-jupyter@2.0.0"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "## mode",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ep",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "mode",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## firmware",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "begin\n{\n    fetch:          (T2, C0),\n                    (TA, R, BW=11, M1=1, C1=1),\n                    (M2, C2, T1, C3),\n                    (A0, B=0, C=0)\n}\nld rdest rorig{\n  co=010000,\n  nwords=1,\n  rdest=reg(25,21),\n  rorig=reg(20,16),\n  {\n    (SELA=10000, T9, LC, SELC=10101, B, A0)\n  }\n}\nldi rdest val{\n  co=010010,\n  nwords=1,\n  rdest=reg(25,21),\n  val=inm(15,0),\n  {\n    (SIZE=10000,OFFSET=0,T3,LC,SELC=10101, B, A0)\n  }\n}\nld rdest (rorig){\n  co=010011,\n  nwords=1,\n  rdest=reg(25,21),\n  rorig=reg(20,16),\n  {\n    (SELA=10000,T9, C0),\n    (TA, R, BW=11, M1, C1),\n    (T1,SELC=10101,LC, B, A0)\n  }\n}\nadd_a rorig{\n  co=011000,\n  nwords=1,\n  rorig=reg(25,21),\n  {\n    (SELA=10101,T9,C4),\n    (SELB=100, MR, MA, SELCOP=1010, MC, T6, LC, SELC=100,SELP=11,M7,C7, B, A0)\n  }\n}\naddi_a val{\n  co=011010,\n  nwords=1,\n  val=inm(15,0),\n  {\n    (SE, SIZE=10000, T3, C5),\n    (SELA=100, MR, MB=01, SELCOP=1010, MC, SELP=11, M7, C7, T6, LC, SELC= 100, A0, B)\n  }\n}\ninc rdest{\n  co=011100,\n  nwords=1,\n  rdest=reg(25,21),\n  {\n    (SELA=10101, MB=11, SELCOP=1010, MC, T6, LC, SELC=10101, SELP=11, M7, C7, B, A0)\n  }\n}\ndec rdest{\n  co=011101,\n  nwords=1,\n  rdest=reg(25,21),\n  {\n    (SELA=10101, MB=11, SELCOP=1011, MC, T6, LC, SELC=10101, SELP=11, M7, C7, B, A0)\n  }\n}\njp val{\n  co=110000,\n  nwords=1,\n  val=address(15,0)rel,\n  {\n    (SE, SIZE=10000, T3, C5),\n    (T2, C4),\n    (MA, MB=01, SELCOP=1010, MC, T6, C2, A0, B)\n  }\n}\njpz val{\n  co=110011,\n  nwords=1,\n  val=address(15,0)rel,\n  {\n    (C=110, B, MADDR=backtofetch)\n    (SE, SIZE=10000, T3, C5),\n    (T2, C4),\n    (MA, MB=01, SELCOP=1010, MC, T6, C2, A0, B),\n    backtofetch: (A0, B)\n  }\n}\ncall val{\n  co= 100001,\n  nwords=1,\n  val=inm(15,0)\n  {\n    (SELA=11101, MR, C0, MB=10, SELCOP=1011, MC, T6, LC, SELC=11101),\n    (T2, C1),\n    (TA, BW=11, TD, W, SIZE=10000, OFFSET=0, T3, C2, B, A0)\n  }\n}\nret{\n  co=100010,\n  nwords=1,\n  {\n   (SELA=11101, MR, T9, C0, MB=10, SELCOP=1010, MC, C6),\n   (TA, R, BW=11, M1, C1, T7, LC, SELC=11101, MR),\n   (T1, C2, A0, B)\n  }\n}\nhalt{\n  co=100011,\n  nwords=1,\n  {\n    ( EXCODE=0,T11,C2, B, A0)\n  }\n}\npush rorig{\n  co=100100,\n  nwords=1,\n  rorig=reg(25,21)\n  {\n  (SELA=11101, MR, MB=10, SELCOP=1011, MC, T6, LC, SELC=11101, C0),\n   (SELA=10101, T9, C1)\n   (TA, BW=11, TD, W, A0, B)\n  }\n}\npop rdest{\n  co= 100101,\n  nwords=1,\n  rdest=reg(25,21),\n  {\n    (SELA=11101, MR, T9, C0, MB=10, SELCOP=1010, MC, C6),\n    (TA, R, BW=11, M1, C1, T7, LC, SELC=11101, MR),\n    (T1, LC, SELC=10101, B, A0)\n  }\n}\n\nregisters\n{\n        4=A,\n        5=BC,\n        6=DE,\n        7=HL,\n        8=IX,\n        9=IY,\n        29=$sp (stack_pointer)\n}",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "firmware",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## assembly",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": ".data\n\tvector: .word 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\n.text\nsumav:\n\tpush IX #registro a0\n  push IY #registro a1\n  ldi HL 0 #registro vo\n  ldi A 0\n  b1:\n  \tldi A 0\n  \tadd_a IX\n    jpz f1\n    ld BC, (IY) #BC = t0\n    #add\n    ld A, HL\n    add_a BC \n    ld HL, A\n    #addi\n    ld A, IY\n    addi_a 4\n    ld IY, A\n    #addi\n    ld A, IX\n    addi_a -1\n    ld IX, A\n    jp b1\n  f1:\n  \tpop IY\n    pop IX\n    ret\n main:\n \tldi IX, 10\n  ldi IY, vector \n  call sumav\n  halt",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "assembly",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## state_current",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "{\n  \"time\": 1574951936028,\n  \"title\": \"clock 877 @ &#181;address 0\",\n  \"title_short\": \"clock 877,<br>&#181;add 0\",\n  \"content\": \"register R5 = 0xa; register R7 = 0x37; register R8 = 0xa; register R9 = 0x1000; register R29 = 0xfffff; register SR = 0x10000000; memory 0x1000 = 0x1; memory 0x1004 = 0x2; memory 0x1008 = 0x3; memory 0x100c = 0x4; memory 0x1010 = 0x5; memory 0x1014 = 0x6; memory 0x1018 = 0x7; memory 0x101c = 0x8; memory 0x1020 = 0x9; memory 0x1024 = 0xa; memory 0x8000 = 0x91000000; memory 0x8004 = 0x91200000; memory 0x8008 = 0x48e00000; memory 0x800c = 0x48800000; memory 0x8010 = 0x48800000; memory 0x8014 = 0x61000000; memory 0x8018 = 0xcc00002c; memory 0x801c = 0x4ca90000; memory 0x8020 = 0x40870000; memory 0x8024 = 0x60a00000; memory 0x8028 = 0x40e40000; memory 0x802c = 0x40890000; memory 0x8030 = 0x68000004; memory 0x8034 = 0x41240000; memory 0x8038 = 0x40880000; memory 0x803c = 0x6800ffff; memory 0x8040 = 0x41040000; memory 0x8044 = 0xc000ffc8; memory 0x8048 = 0x95200000; memory 0x804c = 0x95000000; memory 0x8050 = 0x88000000; memory 0x8054 = 0x4900000a; memory 0x8058 = 0x49201000; memory 0x805c = 0x84008000; memory 0x8060 = 0x8c000000; memory 0xffff0 = 0x1000; memory 0xffff4 = 0xa; memory 0xffff8 = 0x8060; \"\n}",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "state_current",
+        "type": "object",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## state_history",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "[]",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "state_history",
+        "type": "object",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## record",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "[\n  {\n    \"timestamp\": 500,\n    \"description\": \"Show message with title \\\"<span class='inline-block text-truncate w-25'>Resultado esperado</span>\\\" and body \\\"<span class='inline-block text-truncate w-25'>El resultado esperado de sumar los elementos del vector 1,2,3,4,5,6,7,8,9,10  es 55</span>\\\".\",\n    \"element\": \"wsweb_notifyuser_show(\\\"Resultado esperado\\\", \\\"El resultado esperado de sumar los elementos del vector 1,2,3,4,5,6,7,8,9,10  es 55\\\", \\\"3000\\\");\\n\"\n  },\n  {\n    \"timestamp\": 3000,\n    \"description\": \"Close message with title \\\"<span class='inline-block text-truncate w-25'>Resultado esperado</span>\\\".\",\n    \"element\": \"wsweb_notifyuser_hide();\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element dd2\",\n    \"element\": \"simcore_record_glowing(\\\"#dd2\\\");\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element tab14\",\n    \"element\": \"simcore_record_glowing(\\\"#tab14\\\");\\n\"\n  },\n  {\n    \"timestamp\": 15,\n    \"description\": \"Change select details to 14\",\n    \"element\": \"wsweb_set_details_select(14);\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Set details to MEMORY\",\n    \"element\": \"wsweb_set_details('MEMORY');\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element dd2\",\n    \"element\": \"simcore_record_glowing(\\\"#dd2\\\");\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element tab11\",\n    \"element\": \"simcore_record_glowing(\\\"#tab11\\\");\\n\"\n  },\n  {\n    \"timestamp\": 14,\n    \"description\": \"Change select details to 11\",\n    \"element\": \"wsweb_set_details_select(11);\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Set details to REGISTER_FILE\",\n    \"element\": \"wsweb_set_details('REGISTER_FILE');\\n\"\n  },\n  {\n    \"timestamp\": 3657,\n    \"description\": \"Run\",\n    \"element\": \"wsweb_execution_run();\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element btn_run_stop\",\n    \"element\": \"simcore_record_glowing(\\\"#btn_run_stop\\\");\\n\"\n  },\n  {\n    \"timestamp\": 4922,\n    \"description\": \"Close execution summary\",\n    \"element\": \"wsweb_dialogbox_close_all();\\n\"\n  },\n  {\n    \"timestamp\": 500,\n    \"description\": \"Show message with title \\\"<span class='inline-block text-truncate w-25'>Resultado</span>\\\" and body \\\"<span class='inline-block text-truncate w-25'>El resultado ha sido el correcto, el 55</span>\\\".\",\n    \"element\": \"wsweb_notifyuser_show(\\\"Resultado\\\", \\\"El resultado ha sido el correcto, el 55\\\", \\\"3000\\\");\\n\"\n  },\n  {\n    \"timestamp\": 3000,\n    \"description\": \"Close message with title \\\"<span class='inline-block text-truncate w-25'>Resultado</span>\\\".\",\n    \"element\": \"wsweb_notifyuser_hide();\\n\"\n  }\n]",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "record",
+        "type": "object",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## tag",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "tag",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## notify",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "true",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "notify",
+        "type": "boolean",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    }
+  ]
+}
