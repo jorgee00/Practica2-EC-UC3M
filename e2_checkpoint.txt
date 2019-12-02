@@ -1,0 +1,170 @@
+{
+  "metadata": {
+    "kernelspec": {
+      "name": "node_nteract",
+      "language": "javascript",
+      "display_name": "Node.js (nteract)"
+    },
+    "kernel_info": {
+      "name": "node_nteract"
+    },
+    "language_info": {
+      "name": "javascript",
+      "version": "8.2.1",
+      "mimetype": "application/javascript",
+      "file_extension": ".js"
+    },
+    "title": "WepSIM 2.0.11",
+    "nteract": {
+      "version": "nteract-on-jupyter@2.0.0"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "## mode",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ep",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "mode",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## firmware",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "begin\n{\n    fetch:          (T2, C0),\n                    (TA, R, BW=11, M1=1, C1=1),\n                    (M2, C2, T1, C3),\n                    (A0, B=0, C=0)\n}\nld rdest rorig{\n  co=010000,\n  nwords=1,\n  rdest=reg(25,21),\n  rorig=reg(20,16),\n  #Con ld lo que queremos hacer es cargar el valor de un registro en otro.\n  {\n    #Esto lo podemos hacer en un mismo ciclo de reloj, cargando el valor del registro origen en el bus interno, y leyendo el valor del bus interno y escribiéndolo en el registro origen.\n    (SELA=10000, T9, LC, SELC=10101, B, A0)\n  }\n}\nldi rdest val{\n  co=010010,\n  nwords=1,\n  rdest=reg(25,21),\n  val=inm(15,0),\n  #ldi carga el valor de un número pasado de forma inmediata, sin signo, en un registro destino.\n  {\n    #Podemos leer este número con el SELEC, cargarlo en el bus interno, y luego leer el valor del bus, escribiéndolo en el registro destino, todo en un mismo ciclo de reloj.\n    (SIZE=10000,OFFSET=0,T3,LC,SELC=10101, B, A0)\n  }\n}\nld rdest (rorig){\n  co=010011,\n  nwords=1,\n  rdest=reg(25,21),\n  rorig=reg(20,16),\n  #Con esta instrucción queremos cargar el valor de la dirección de memoria que almacena Rorig en Rdest.\n  {\n    #En el primer ciclo de reloj cargamos el valor del registro origen en MAR.\n    (SELA=10000,T9, C0),\n    #En el segundo ciclo, nos traemos de memoria el valor que hemos introducido en MAR, y lo cargamos en el MBR.\n    (TA, R, BW=11, M1, C1),\n    #En el tercer ciclo de reloj, cargamos el valor de MBR en el registro destino.\n    (T1,SELC=10101,LC, B, A0)\n  }\n}\nadd_a rorig{\n  co=011000,\n  nwords=1,\n  rorig=reg(25,21),\n  #En esta instrucción queremos sumar el registro A y Rorig, y almacenar el resultado en A.\n  {\n    #En el primer ciclo de reloj cargamos el valor del registro origen en RT1.\n    (SELA=10101,T9,C4),\n    #En el segundo, pasamos el valor de A a la ALU, se lo sumamos al valor de RT1, lo guardamos en A, y actualizamos el registro de estado.\n    (SELB=100, MR, MA, SELCOP=1010, MC, T6, LC, SELC=100,SELP=11,M7,C7, B, A0)\n  }\n}\naddi_a val{\n  co=011010,\n  nwords=1,\n  val=inm(15,0),\n  #En esta instrucción, queremos poder pasar un valor inmediato con signo, sumarselo al registro A, y almacenar el resultado en A.\n  {\n    #En el primer ciclo de reloj, cargamos el número en el bus interno, y lo almacenamos en RT2.\n    (SE, SIZE=10000, T3, C5),\n    #En el segundo ciclo de reloj, sumamos el registro A y el valor de RT2 mediante la ALU, actualizamos el registro de estado, y almacenamos el resultado de la suma en el registro A.\n    (SELA=100, MR, MB=01, SELCOP=1010, MC, SELP=11, M7, C7, T6, LC, SELC= 100, A0, B)\n  }\n}\ninc rdest{\n  co=011100,\n  nwords=1,\n  rdest=reg(25,21),\n  #La instrucción inc incrementa el valor del contenido de Rdest en uno.\n  {\n    #Sacamos el contenido de Rdest, lo llevamos a la ALU, lo incrementamos en uno, y directamente lo guardamos de nuevo en el mismo registro. Además, actualizamos el registro de estado.\n    (SELA=10101, MB=11, SELCOP=1010, MC, T6, LC, SELC=10101, SELP=11, M7, C7, B, A0)\n  }\n}\ndec rdest{\n  co=011101,\n  nwords=1,\n  rdest=reg(25,21),\n  #La instrucción dec decrementa el valor del contenido de Rdest en uno.\n  {\n    #Sacamos el contenido de Rdest, lo llevamos a la ALU, le restamos uno, y directamente lo guardamos de nuevo en el mismo registro. Además actualizamos el registro de estado.\n    (SELA=10101, MB=11, SELCOP=1011, MC, T6, LC, SELC=10101, SELP=11, M7, C7, B, A0)\n  }\n}\njp val{\n  co=110000,\n  nwords=1,\n  val=address(15,0)rel,\n  #jp debe saltar a la dirección de memoria relativa de una etiqueta o dirección que se le pase. \n  {\n    #Lo primero que hacemos es almacenar la dirección en RT2. \n    (SE, SIZE=10000, T3, C5),\n    #En el segundo ciclo de reloj, guardamos PC en RT1.\n    (T2, C4),\n    #En el tercer ciclo de reloj, sumamos en la ALU RT1 y RT2, y guardamos el resultado en PC.\n    (MA, MB=01, SELCOP=1010, MC, T6, C2, A0, B)\n  }\n}\njpz val{\n  co=110011,\n  nwords=1,\n  val=address(15,0)rel,\n  #jpz debe saltar a la dirección de memoria relativa de una etiqueta o dirección que se le pase, siempre que cumpla que Flag.Zero sea igual a 1. Si no lo es, debe hacer un fetch.\n  {\n    #En la unidad de control, ponemos C a 6 para coger el valor de Flag.Zero, lo negamos con B=1, y alimentamos la salida a la entrada de control del multiplexor A. Además, creamos una etiqueta que llame a un fetch cuando se salte a ella, e igualamos MADDR a esta etiqueta. De esta manera simulamos la estructura \"If\" que necesitamos.\n    (C=110, B, MADDR=backtofetch)\n    #Si Flag.Zero = 1, almacenamos la dirección en RT2.\n    (SE, SIZE=10000, T3, C5),\n    #Guardamos PC en RT1.\n    (T2, C4),\n    #Sumamos en la ALU RT1 y RT2, y guardamos el resultado en PC.\n    (MA, MB=01, SELCOP=1010, MC, T6, C2, A0, B),\n    #Lo siguiente es la etiqueta que creamos para llamar al fetch.\n    backtofetch: (A0, B)\n  }\n}\ncall val{\n  co=100001,\n  nwords=1,\n  val=inm(15,0)\n  #call salta a la dirección absoluta de una dirección o etiqueta pasada como parámetro, almacenando antes en pila el PC actual.\n  {\n    #Llevamos el valor de SP a la ALU para restarle cuatro, ese valor lo llevamos a MAR y lo cargamos de nuevo en el registro SP.\n    (SELA=11101, MR, C0, MB=10, SELCOP=1011, MC, T6, LC, SELC=11101),\n    #Cargamos el valor de PC en MBR.\n    (T2, C1),\n    #Cargamos MBR en memoria en la dirección que almacena MAR, y cargamos el valor inmediato en PC.\n    (TA, BW=11, TD, W, SIZE=10000, OFFSET=0, T3, C2, B, A0)\n  }\n}\nret{\n  co=100010,\n  nwords=1,\n  #ret restaura el valor del puntero de pila en el PC.\n  {\n   #Cargamos el valor del registro SP en MAR, y calculamos el valor de SP - 4, y almacenamos el resultado en RT3.\n   (SELA=11101, MR, T9, C0, MB=10, SELCOP=1010, MC, C6),\n   #Extraemos el contenido de la dirección de memoria que almacena MAR en MBR, y almacenamos el valor de RT3 en SP.\n   (TA, R, BW=11, M1, C1, T7, LC, SELC=11101, MR),\n   #Guargamos el valor de MBR en PC.\n   (T1, C2, A0, B)\n  }\n}\nhalt{\n  co=100011,\n  nwords=1,\n  #halt detiene la ejecución del programa.\n  {\n    #Cargamos el valor 0 a través de EXCODE en PC.\n    (EXCODE=0,T11,C2, B, A0)\n  }\n}\npush rorig{\n  co=100100,\n  nwords=1,\n  rorig=reg(25,21)\n  #push introduce el valor de un registro en pila.\n  {\n   #Reducimos el puntero de pila SP en 4 con la ALU, actualizamos su valor en el banco de registros y cargamos el resultado de la operación en MAR.\n   (SELA=11101, MR, MB=10, SELCOP=1011, MC, T6, LC, SELC=11101, C0),\n   #Cargamos el valor de Rorig en MBR.\n   (SELA=10101, T9, C1)\n   #Cargamos el valor de MBR en la dirección de memoria almacenada en MAR.\n   (TA, BW=11, TD, W, A0, B)\n  }\n}\npop rdest{\n  co=100101,\n  nwords=1,\n  rdest=reg(25,21),\n  #pop saca el valor de la dirección de memoria donde apunta SP y lo introduce en Rdest.\n  {\n    #Cargamos el valor de SP en MAR y lo llevamos a la ALU para sumarle 4 y guardarlo en RT6.\n    (SELA=11101, MR, T9, C0, MB=10, SELCOP=1010, MC, C6),\n    #Nos traemos de memoria el valor almacenado en la direccion de MAR y lo guardamos en MBR, guardamos el nuevo valor de SP.\n    (TA, R, BW=11, M1, C1, T7, LC, SELC=11101, MR),\n    #Guardamos el valor de MBR en el registro de destino.\n    (T1, LC, SELC=10101, B, A0)\n  }\n}\n\nregisters\n{\n        4=A,\n        5=BC,\n        6=DE,\n        7=HL,\n        8=IX,\n        9=IY,\n        29=$sp (stack_pointer)\n}",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "firmware",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## assembly",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": ".data\n\t#Declaramos un vector de enteros\n\tvector: .word 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\n.text\n#Declaramos la funcion sumav\nsumav:\n\t#Apilamos en pila los equivalentes de $a0 y $a1\n\tpush IX\n  push IY\n  #Cargamos 0 en el equivalente de $v0\n  ldi HL 0\n  #Creamos el bucle que va a sumar recursivamente los elementos de la matriz pasada por parámetro\n  b1:\n  \t#Inicializamos el registro A\n  \tldi A 0\n    #Le sumamos a A el valor de IX\n  \tadd_a IX\n    #Si la suma anterior activa Flag.Zero, salta a la etiqueta f1, si no, continúa con la siguiente instrucción\n    jpz f1\n    #Carga el valor de la direccion de memoria almacenada en IY, en BC (el equivalente de $t0).\n    ld BC, (IY)\n    #Las siguientes instrucciones son el equivalente de add $v0 $v0 $t0\n    ld A, HL\n    add_a BC \n    ld HL, A\n    #Las siguientes instrucciones son el equivalente de addi $a1 $a1 4\n    ld A, IY\n    addi_a 4\n    ld IY, A\n    #Las siguientes instrucciones son el equivalente de addi $a0 $a0 -1\n    ld A, IX\n    addi_a -1\n    ld IX, A\n    #Volvemos al inicio del bucle b1\n    jp b1\n  #Etiqueta fin de bucle\n  f1:\n  \t#Desapilamos y restauramos los valores de IY e IX\n  \tpop IY\n    pop IX\n    #Finalizamos la funcion\n    ret\n    \n main:\n \t#Cargamos los valores en los argumentos que requiere la funcion \n \tldi IX, 10\n  ldi IY, vector \n  #Llamamos a la funcion sumav\n  call sumav\n  #Finalizamos la ejecuccion del programa\n  halt",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "assembly",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## state_current",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "{\n  \"time\": 1575304252562,\n  \"title\": \"clock 872 @ &#181;address 0\",\n  \"title_short\": \"clock 872,<br>&#181;add 0\",\n  \"content\": \"register R5 = 0xa; register R7 = 0x37; register R8 = 0xa; register R9 = 0x1000; register R29 = 0xfffff; register SR = 0x10000000; memory 0x1000 = 0x1; memory 0x1004 = 0x2; memory 0x1008 = 0x3; memory 0x100c = 0x4; memory 0x1010 = 0x5; memory 0x1014 = 0x6; memory 0x1018 = 0x7; memory 0x101c = 0x8; memory 0x1020 = 0x9; memory 0x1024 = 0xa; memory 0x8000 = 0x91000000; memory 0x8004 = 0x91200000; memory 0x8008 = 0x48e00000; memory 0x800c = 0x48800000; memory 0x8010 = 0x61000000; memory 0x8014 = 0xcc00002c; memory 0x8018 = 0x4ca90000; memory 0x801c = 0x40870000; memory 0x8020 = 0x60a00000; memory 0x8024 = 0x40e40000; memory 0x8028 = 0x40890000; memory 0x802c = 0x68000004; memory 0x8030 = 0x41240000; memory 0x8034 = 0x40880000; memory 0x8038 = 0x6800ffff; memory 0x803c = 0x41040000; memory 0x8040 = 0xc000ffc8; memory 0x8044 = 0x95200000; memory 0x8048 = 0x95000000; memory 0x804c = 0x88000000; memory 0x8050 = 0x4900000a; memory 0x8054 = 0x49201000; memory 0x8058 = 0x84008000; memory 0x805c = 0x8c000000; memory 0xffff0 = 0x1000; memory 0xffff4 = 0xa; memory 0xffff8 = 0x805c; \"\n}",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "state_current",
+        "type": "object",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## state_history",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "[\n  {\n    \"time\": 1575304008321,\n    \"title\": \"clock 11 @ &#181;address 0\",\n    \"title_short\": \"clock 11,<br>&#181;add 0\",\n    \"content\": \"register R8 = 0xa; register R9 = 0x1000; register R29 = 0xfffff; register PC = 0x8058; memory 0x1000 = 0x1; memory 0x1004 = 0x2; memory 0x1008 = 0x3; memory 0x100c = 0x4; memory 0x1010 = 0x5; memory 0x1014 = 0x6; memory 0x1018 = 0x7; memory 0x101c = 0x8; memory 0x1020 = 0x9; memory 0x1024 = 0xa; memory 0x8000 = 0x91000000; memory 0x8004 = 0x91200000; memory 0x8008 = 0x48e00000; memory 0x800c = 0x48800000; memory 0x8010 = 0x61000000; memory 0x8014 = 0xcc00002c; memory 0x8018 = 0x4ca90000; memory 0x801c = 0x40870000; memory 0x8020 = 0x60a00000; memory 0x8024 = 0x40e40000; memory 0x8028 = 0x40890000; memory 0x802c = 0x68000004; memory 0x8030 = 0x41240000; memory 0x8034 = 0x40880000; memory 0x8038 = 0x6800ffff; memory 0x803c = 0x41040000; memory 0x8040 = 0xc000ffc8; memory 0x8044 = 0x95200000; memory 0x8048 = 0x95000000; memory 0x804c = 0x88000000; memory 0x8050 = 0x4900000a; memory 0x8054 = 0x49201000; memory 0x8058 = 0x84008000; memory 0x805c = 0x8c000000; \"\n  },\n  {\n    \"time\": 1575304020394,\n    \"title\": \"clock 867 @ &#181;address 0\",\n    \"title_short\": \"clock 867,<br>&#181;add 0\",\n    \"content\": \"register R5 = 0xa; register R7 = 0x37; register R8 = 0xa; register R9 = 0x1000; register R29 = 0xfffff; register PC = 0x805c; register SR = 0x10000000; memory 0x1000 = 0x1; memory 0x1004 = 0x2; memory 0x1008 = 0x3; memory 0x100c = 0x4; memory 0x1010 = 0x5; memory 0x1014 = 0x6; memory 0x1018 = 0x7; memory 0x101c = 0x8; memory 0x1020 = 0x9; memory 0x1024 = 0xa; memory 0x8000 = 0x91000000; memory 0x8004 = 0x91200000; memory 0x8008 = 0x48e00000; memory 0x800c = 0x48800000; memory 0x8010 = 0x61000000; memory 0x8014 = 0xcc00002c; memory 0x8018 = 0x4ca90000; memory 0x801c = 0x40870000; memory 0x8020 = 0x60a00000; memory 0x8024 = 0x40e40000; memory 0x8028 = 0x40890000; memory 0x802c = 0x68000004; memory 0x8030 = 0x41240000; memory 0x8034 = 0x40880000; memory 0x8038 = 0x6800ffff; memory 0x803c = 0x41040000; memory 0x8040 = 0xc000ffc8; memory 0x8044 = 0x95200000; memory 0x8048 = 0x95000000; memory 0x804c = 0x88000000; memory 0x8050 = 0x4900000a; memory 0x8054 = 0x49201000; memory 0x8058 = 0x84008000; memory 0x805c = 0x8c000000; memory 0xffff0 = 0x1000; memory 0xffff4 = 0xa; memory 0xffff8 = 0x805c; \"\n  }\n]",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "state_history",
+        "type": "object",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## record",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "[\n  {\n    \"timestamp\": 1653,\n    \"description\": \"Run\",\n    \"element\": \"wsweb_execution_run();\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element btn_run_stop\",\n    \"element\": \"simcore_record_glowing(\\\"#btn_run_stop\\\");\\n\"\n  },\n  {\n    \"timestamp\": 1330,\n    \"description\": \"Close execution summary\",\n    \"element\": \"wsweb_dialogbox_close_all();\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element dd1\",\n    \"element\": \"simcore_record_glowing(\\\"#dd1\\\");\\n\"\n  },\n  {\n    \"timestamp\": 871,\n    \"description\": \"Open state\",\n    \"element\": \"wsweb_dialogbox_open_state();\\n\"\n  },\n  {\n    \"timestamp\": 240,\n    \"description\": \"Close all notifications\",\n    \"element\": \"wepsim_notify_close();\\n\"\n  },\n  {\n    \"timestamp\": 3376,\n    \"description\": \"Close all notifications\",\n    \"element\": \"wepsim_notify_close();\\n\"\n  },\n  {\n    \"timestamp\": 922,\n    \"description\": \"Close state\",\n    \"element\": \"wsweb_dialogbox_close_all();\\n\"\n  },\n  {\n    \"timestamp\": 1,\n    \"description\": \"Close states dialogbox\",\n    \"element\": \"wsweb_dialogbox_close_state();\\n\"\n  },\n  {\n    \"timestamp\": 1056,\n    \"description\": \"Run\",\n    \"element\": \"wsweb_execution_run();\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element btn_run_stop\",\n    \"element\": \"simcore_record_glowing(\\\"#btn_run_stop\\\");\\n\"\n  },\n  {\n    \"timestamp\": 3311,\n    \"description\": \"Close execution summary\",\n    \"element\": \"wsweb_dialogbox_close_all();\\n\"\n  },\n  {\n    \"timestamp\": 0,\n    \"description\": \"Click on UI element dd1\",\n    \"element\": \"simcore_record_glowing(\\\"#dd1\\\");\\n\"\n  },\n  {\n    \"timestamp\": 1366,\n    \"description\": \"Open state\",\n    \"element\": \"wsweb_dialogbox_open_state();\\n\"\n  },\n  {\n    \"timestamp\": 219,\n    \"description\": \"Close all notifications\",\n    \"element\": \"wepsim_notify_close();\\n\"\n  },\n  {\n    \"timestamp\": 3952,\n    \"description\": \"Close all notifications\",\n    \"element\": \"wepsim_notify_close();\\n\"\n  },\n  {\n    \"timestamp\": 16390,\n    \"description\": \"Close state\",\n    \"element\": \"wsweb_dialogbox_close_all();\\n\"\n  },\n  {\n    \"timestamp\": 1,\n    \"description\": \"Close states dialogbox\",\n    \"element\": \"wsweb_dialogbox_close_state();\\n\"\n  },\n  {\n    \"timestamp\": 500,\n    \"description\": \"Show message with title \\\"<span class='inline-block text-truncate w-25'>Resultado obtenido</span>\\\" and body \\\"<span class='inline-block text-truncate w-25'>El resultado obtenido ha sido el esperado ya que la suma de los elementos del vector es 55 que es el valor que aparece en R7 en hexadecimal.</span>\\\".\",\n    \"element\": \"wsweb_notifyuser_show(\\\"Resultado obtenido\\\", \\\"El resultado obtenido ha sido el esperado ya que la suma de los elementos del vector es 55 que es el valor que aparece en R7 en hexadecimal.\\\", \\\"5000\\\");\\n\"\n  },\n  {\n    \"timestamp\": 5000,\n    \"description\": \"Close message with title \\\"<span class='inline-block text-truncate w-25'>Resultado obtenido</span>\\\".\",\n    \"element\": \"wsweb_notifyuser_hide();\\n\"\n  }\n]",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "record",
+        "type": "object",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## tag",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "tag",
+        "type": "string",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## notify",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "true",
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "name": "notify",
+        "type": "boolean",
+        "collapsed": false,
+        "deletable": false,
+        "editable": false
+      }
+    }
+  ]
+}
